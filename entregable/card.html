@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle de Usuario - Tarjeta</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.8/axios.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #eef2f7;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        #caja {
+            background-color: #ffffff;
+            width: 500px;
+            padding: 35px 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            border: 1px solid #dcdfe6;
+        }
+
+        #avatar {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #4f46e5;
+            margin-bottom: 15px;
+        }
+
+        .saludo {
+            font-size: 1rem;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+
+        #nombre {
+            font-size: 1.5rem;
+            color: #1f2937;
+            margin-bottom: 25px;
+            min-height: 40px;
+            word-break: break-word;
+        }
+
+        #nombre.link-maps {
+            color: #2563eb;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        #nombre.link-maps:hover {
+            color: #1d4ed8;
+        }
+
+        #icono {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 10px;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 20px;
+        }
+
+        .icono-item {
+            font-size: 1.6rem;
+            color: #6b7280;
+            cursor: pointer;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .icono-item:hover, .icono-item.active {
+            color: #4f46e5;
+            background-color: #e0e7ff;
+        }
+
+        .maps-hint {
+            font-size: 0.85rem;
+            color: #2563eb;
+            margin-top: 4px;
+            display: block;
+            font-weight: normal;
+        }
+
+        .btn-volver {
+            margin-top: 20px;
+            display: inline-block;
+            background-color: #4f46e5;
+            color: white;
+            padding: 10px 24px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-volver:hover {
+            background-color: #4338ca;
+        }
+    </style>
+</head>
+<body id="body">
+
+    <div id="caja">
+        <img id="avatar" alt="Foto de perfil" src="">
+        <p id="saludo" class="saludo">Hola, mi nombre es</p>
+        <h1 id="nombre">Cargando...</h1>
+        <div id="maps-info" style="display: none;">
+            <span class="maps-hint"><i class="fa-solid fa-arrow-up-right-from-square"></i> Haz clic en la dirección o en el ícono para abrir en Google Maps</span>
+        </div>
+
+        <div id="icono">
+            <div id="icono-usuario" class="icono-item active"><i class="fa-solid fa-user"></i></div>
+            <div id="icono-email" class="icono-item"><i class="fa-solid fa-envelope"></i></div>
+            <div id="icono-celular" class="icono-item"><i class="fa-solid fa-mobile-screen-button"></i></div>
+            <div id="icono-direccion" class="icono-item"><i class="fa-solid fa-location-dot"></i></div>
+            <div id="icono-telefono" class="icono-item"><i class="fa-solid fa-phone"></i></div>
+            <div id="icono-seguridad" class="icono-item"><i class="fa-solid fa-lock"></i></div>
+        </div>
+    </div>
+
+    <a href="100user.html" class="btn-volver">← Volver a la lista (100 Usuarios)</a>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            let saludo = document.getElementById("saludo");
+            let nombre = document.getElementById("nombre");
+            let imagen = document.getElementById("avatar");
+            let mapsInfo = document.getElementById("maps-info");
+
+            let iconoUsuario = document.getElementById("icono-usuario");
+            let iconoEmail = document.getElementById("icono-email");
+            let iconoCelular = document.getElementById("icono-celular");
+            let iconoDireccion = document.getElementById("icono-direccion");
+            let iconoTelefono = document.getElementById("icono-telefono");
+            let iconoSeguridad = document.getElementById("icono-seguridad");
+            let todosLosIconos = document.querySelectorAll(".icono-item");
+
+            let usuarioData = null;
+
+            // 1. Intentar cargar el usuario guardado desde localStorage
+            const usuarioGuardado = localStorage.getItem("usuarioSeleccionado");
+
+            if (usuarioGuardado) {
+                const parsedUser = JSON.parse(usuarioGuardado);
+                usuarioData = {
+                    nombre: parsedUser.nombre,
+                    email: parsedUser.email || "No especificado",
+                    celular: parsedUser.celular || "No especificado",
+                    direccion: parsedUser.direccion || "No especificada",
+                    telefono: parsedUser.telefono || "No especificado",
+                    seguridad: parsedUser.seguridad || "user123pass",
+                    foto: parsedUser.foto
+                };
+            } else {
+                // Fallback: Si no hay usuario guardado, pedir uno a la API
+                try {
+                    let res = await axios.get("https://randomuser.me/api/");
+                    let u = res.data.results[0];
+                    usuarioData = {
+                        nombre: `${u.name.first} ${u.name.last}`,
+                        email: u.email,
+                        celular: u.cell,
+                        direccion: `${u.location.street.name} ${u.location.street.number}, ${u.location.city}, ${u.location.country}`,
+                        telefono: u.phone,
+                        seguridad: u.login.password,
+                        foto: u.picture.large
+                    };
+                } catch (e) {
+                    console.error("Error al cargar usuario:", e);
+                }
+            }
+
+            if (!usuarioData) return;
+
+            // Cargar imagen y datos iniciales
+            imagen.src = usuarioData.foto;
+            nombre.textContent = usuarioData.nombre;
+
+            function setActiveIcon(iconoActivo) {
+                todosLosIconos.forEach(icon => icon.classList.remove("active"));
+                iconoActivo.classList.add("active");
+                nombre.classList.remove("link-maps");
+                nombre.onclick = null;
+                mapsInfo.style.display = "none";
+            }
+
+            function abrirGoogleMaps() {
+                const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(usuarioData.direccion)}`;
+                window.open(url, "_blank");
+            }
+
+            // Eventos para cada ícono
+            iconoUsuario.addEventListener("mouseover", () => {
+                setActiveIcon(iconoUsuario);
+                saludo.textContent = "Hola, mi nombre es";
+                nombre.textContent = usuarioData.nombre;
+            });
+
+            iconoEmail.addEventListener("mouseover", () => {
+                setActiveIcon(iconoEmail);
+                saludo.textContent = "Mi correo es";
+                nombre.textContent = usuarioData.email;
+            });
+
+            iconoCelular.addEventListener("mouseover", () => {
+                setActiveIcon(iconoCelular);
+                saludo.textContent = "Mi celular es";
+                nombre.textContent = usuarioData.celular;
+            });
+
+            iconoDireccion.addEventListener("mouseover", () => {
+                setActiveIcon(iconoDireccion);
+                saludo.textContent = "Mi dirección es";
+                nombre.textContent = usuarioData.direccion;
+                nombre.classList.add("link-maps");
+                nombre.onclick = abrirGoogleMaps;
+                mapsInfo.style.display = "block";
+            });
+
+            iconoDireccion.addEventListener("click", () => {
+                abrirGoogleMaps();
+            });
+
+            iconoTelefono.addEventListener("mouseover", () => {
+                setActiveIcon(iconoTelefono);
+                saludo.textContent = "Mi teléfono es";
+                nombre.textContent = usuarioData.telefono;
+            });
+
+            iconoSeguridad.addEventListener("mouseover", () => {
+                setActiveIcon(iconoSeguridad);
+                saludo.textContent = "Mi contraseña es";
+                nombre.textContent = usuarioData.seguridad;
+            });
+        });
+    </script>
+</body>
+</html>
