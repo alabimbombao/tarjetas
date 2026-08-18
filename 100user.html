@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Usuarios (100 Tarjetas)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #f4f6f9;
+            color: #333333;
+            padding-bottom: 40px;
+        }
+
+        header {
+            background-color: #ffffff;
+            color: #000000;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #cbd5e1;
+        }
+
+        header h1 {
+            font-size: 1.4rem;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 25px auto;
+            padding: 0 15px;
+        }
+
+        .title-section {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .title-section h2 {
+            font-size: 1.3rem;
+            color: #1e293b;
+        }
+
+        .title-section p {
+            font-size: 0.95rem;
+            color: #64748b;
+        }
+
+        .grid-tarjetas {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+            gap: 15px;
+        }
+
+        .tarjeta {
+            background-color: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 15px;
+            position: relative;
+            cursor: pointer;
+            text-align: center;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .tarjeta:hover {
+            border-color: #2563eb;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .estrella {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 1.4rem;
+            cursor: pointer;
+            filter: grayscale(100%);
+            opacity: 0.3;
+        }
+
+        .estrella:hover {
+            opacity: 0.8;
+        }
+
+        .estrella.favorito {
+            filter: grayscale(0%);
+            opacity: 1;
+        }
+
+        .tarjeta img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 10px;
+            border: 2px solid #2563eb;
+        }
+
+        .tarjeta h3 {
+            font-size: 1rem;
+            color: #0f172a;
+            margin-bottom: 6px;
+        }
+
+        .tarjeta p {
+            font-size: 0.85rem;
+            color: #475569;
+            margin-bottom: 3px;
+        }
+
+        .cargando {
+            text-align: center;
+            font-size: 1.1rem;
+            color: #64748b;
+            padding: 40px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Directorio de Usuarios (100)</h1>
+    </header>
+
+    <main class="container">
+        <div class="title-section">
+            <h2>Lista de 100 Usuarios</h2>
+            <p id="contador-favoritos">Favoritos guardados: 0</p>
+        </div>
+
+        <div id="cargando" class="cargando">Cargando 100 usuarios desde Random User API...</div>
+
+        <div id="contenedor-tarjetas" class="grid-tarjetas"></div>
+    </main>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const contenedor = document.getElementById("contenedor-tarjetas");
+            const cargando = document.getElementById("cargando");
+            const contadorFavoritos = document.getElementById("contador-favoritos");
+
+            function obtenerFavoritos() {
+                return JSON.parse(localStorage.getItem("favoritos")) || [];
+            }
+
+            function actualizarContador() {
+                const favoritos = obtenerFavoritos();
+                if (contadorFavoritos) {
+                    contadorFavoritos.textContent = `Favoritos guardados: ${favoritos.length}`;
+                }
+            }
+
+            async function obtenerUsuarios() {
+                try {
+                    const respuesta = await fetch("https://randomuser.me/api/?results=100");
+                    const datos = await respuesta.json();
+                    
+                    cargando.style.display = "none";
+
+                    const usuarios = datos.results.map(u => ({
+                        id: u.login.uuid,
+                        nombre: `${u.name.first} ${u.name.last}`,
+                        genero: u.gender === 'female' ? 'Femenino' : (u.gender === 'male' ? 'Masculino' : u.gender),
+                        edad: u.dob.age,
+                        foto: u.picture.large,
+                        email: u.email,
+                        celular: u.cell,
+                        telefono: u.phone,
+                        direccion: `${u.location.street.name} #${u.location.street.number}, ${u.location.city}, ${u.location.country}`,
+                        pais: u.location.country,
+                        seguridad: u.login.password
+                    }));
+
+                    renderizarTarjetas(usuarios);
+                } catch (error) {
+                    console.error("Error al obtener los usuarios:", error);
+                    cargando.textContent = "Ocurrió un error al cargar los 100 usuarios. Intenta recargar la página.";
+                }
+            }
+
+            function renderizarTarjetas(usuarios) {
+                contenedor.innerHTML = "";
+                const favoritos = obtenerFavoritos();
+
+                usuarios.forEach(usuario => {
+                    const esFav = favoritos.some(fav => fav.id === usuario.id);
+
+                    const tarjeta = document.createElement("div");
+                    tarjeta.classList.add("tarjeta");
+
+                    tarjeta.innerHTML = `
+                        <span class="estrella ${esFav ? 'favorito' : ''}">⭐</span>
+                        <img src="${usuario.foto}" alt="${usuario.nombre}">
+                        <h3>${usuario.nombre}</h3>
+                        <p><strong>Género:</strong> ${usuario.genero}</p>
+                        <p><strong>Edad:</strong> ${usuario.edad} años</p>
+                    `;
+
+                    const estrella = tarjeta.querySelector(".estrella");
+
+                    estrella.addEventListener("click", (evento) => {
+                        evento.stopPropagation();
+                        toggleFavorito(usuario, estrella);
+                    });
+
+                    // Al hacer clic en la tarjeta, guarda el usuario y abre card.html (la vista de detalle)
+                    tarjeta.addEventListener("click", () => {
+                        localStorage.setItem("usuarioSeleccionado", JSON.stringify(usuario));
+                        window.location.href = "card.html";
+                    });
+
+                    contenedor.appendChild(tarjeta);
+                });
+
+                actualizarContador();
+            }
+
+            function toggleFavorito(usuario, estrellaElemento) {
+                let favoritos = obtenerFavoritos();
+                const existeIndex = favoritos.findIndex(fav => fav.id === usuario.id);
+
+                if (existeIndex !== -1) {
+                    favoritos.splice(existeIndex, 1);
+                    estrellaElemento.classList.remove("favorito");
+                } else {
+                    favoritos.push(usuario);
+                    estrellaElemento.classList.add("favorito");
+                }
+
+                localStorage.setItem("favoritos", JSON.stringify(favoritos));
+                actualizarContador();
+            }
+
+            obtenerUsuarios();
+        });
+    </script>
+</body>
+</html>
